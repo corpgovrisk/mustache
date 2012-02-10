@@ -106,6 +106,12 @@ class Mustache
   #
   # Returns a rendered String version of a template
   def render(data = template, ctx = {})
+    puts "Context is #{ctx.class.name}"
+    if ctx.is_a?(Hash) && ctx[:helper_context].present?
+      context.helper = ctx.delete :helper_context
+      ctx = ctx.values.first if ctx.length.eql?(1)
+    end
+
     if data.is_a? Hash
       ctx = data
       tpl = templateify(template)

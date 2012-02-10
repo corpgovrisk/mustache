@@ -31,6 +31,7 @@ class Mustache
     # the compilation step and run the Ruby version of the template
     # directly.
     def render(context)
+      puts context.class.name
       # Compile our Mustache template into a Ruby string
       compiled = "def render(ctx) #{compile} end"
 
@@ -46,6 +47,7 @@ class Mustache
     # Does the dirty work of transforming a Mustache template into an
     # interpolation-friendly Ruby string.
     def compile(src = @source)
+      puts "Running compile"
       Generator.new.compile(tokens(src))
     end
     alias_method :to_s, :compile

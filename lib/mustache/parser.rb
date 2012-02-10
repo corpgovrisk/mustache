@@ -50,11 +50,11 @@ EOF
     SKIP_WHITESPACE = [ '#', '^', '/', '<', '>', '=', '!' ]
 
     # The content allowed in a tag name.
-    ALLOWED_CONTENT = /(\w|[?!\/.-])*/
+    ALLOWED_CONTENT = /(\s|\w|[?!\/.-])*/
 
     # These types of tags allow any content,
     # the rest only allow ALLOWED_CONTENT.
-    ANY_CONTENT = [ '!', '=' ]
+    ANY_CONTENT = [ '!', '=', '{']
 
     attr_reader :scanner, :result
     attr_writer :otag, :ctag
@@ -139,7 +139,17 @@ EOF
       # We found {{ but we can't figure out what's going on inside.
       error "Illegal content in tag" if content.empty?
 
-      fetch = [:mustache, :fetch, content.split('.')]
+      splits = []
+      mode = :fetch
+
+      if content.match(/\w+\s(\w|['"])+/).nil?
+        splits = content.split(".")
+      else # detected a handlebars style helper call
+        splits = content.scan(/"[^"]*"|'[^']*'|[^"'\s]+/)
+        mode = :helper
+      end
+
+      fetch = [:mustache, mode, splits]
       prev = @result
 
       # Based on the sigil, do what needs to be done.
@@ -149,7 +159,6 @@ EOF
         @result << [:mustache, :section, fetch, block]
         @sections << [content, position, @result]
         @result = block
-        puts @result
       when '^'
         block = [:multi]
         @result << [:mustache, :inverted_section, fetch, block]

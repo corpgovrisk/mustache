@@ -101,6 +101,8 @@ class Mustache
       if v = #{compile!(name)}
         if v == true
           #{code}
+        elsif v.is_a?(String)
+          #{code} if v.length > 0
         elsif v.is_a?(Proc)
           t = Mustache::Template.new(v.call(#{raw.inspect}).to_s)
           def t.tokens(src=@source)
@@ -109,6 +111,8 @@ class Mustache
             p.compile(src)
           end
           t.render(ctx.dup)
+        elsif !(v.is_a?(Array) || defined?(Enumerator) && v.is_a?(Enumerator))
+          #{code} if v != nil
         else
           # Shortcut when passed non-array
           v = [v] unless v.is_a?(Array) || defined?(Enumerator) && v.is_a?(Enumerator)
@@ -180,6 +184,33 @@ class Mustache
           }
         compiled
       end
+    end
+
+    def on_helper(names)
+      method_name = names[0]
+      call_string = ""
+      names[1..names.length].each do |name|
+        unless (name[0].eql?("'") && name[name.length - 1].eql?("'")) || (name[0].eql?("\"") && name[name.length - 1].eql?("\""))
+          # resolve the method
+          index = names.index(name)
+          initial, *rest = name.split(".")
+          if rest.length == 0
+            code = "ctx[#{initial.to_sym.inspect}]" 
+          else
+            code = <<-compiled
+              #{rest.inspect}.inject(ctx[#{initial.inspect}]) { |value, key|
+                value && ctx.find(value, key)
+              }
+            compiled
+          end
+          names[index] = code
+          name = code
+        end
+        call_string << name
+        call_string << ", " unless names.last.eql?(name)
+      end
+
+      "ctx.helper :#{method_name}, [#{call_string}]"
     end
 
     # An interpolation-friendly version of a string, for use within a

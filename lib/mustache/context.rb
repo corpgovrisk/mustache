@@ -15,6 +15,7 @@ class Mustache
     # Expect to be passed an instance of `Mustache`.
     def initialize(mustache)
       @stack = [mustache]
+      @helper_context = nil
     end
 
     # A {{>partial}} tag translates into a call to the context's
@@ -63,6 +64,10 @@ class Mustache
     def pop
       @stack.shift
       self
+    end
+
+    def helper=(helper_context)
+      @helper_context = helper_context
     end
 
     # Can be used to add a value to the context in a hash-like way.
@@ -137,6 +142,10 @@ class Mustache
       else
         default
       end
+    end
+
+    def helper(symbol, args = [])
+      @helper_context.send(symbol, args)
     end
   end
 end
